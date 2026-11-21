@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  markdown:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DavidAnson/markdownlint-cli2-action@v19
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: 8.21.2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Repository hygiene (forbidden files, size, keywords)
+        run: bash scripts/check-repo.sh
+      - name: Install gitleaks
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP" gitleaks
+      - name: gitleaks (full git history)
+        run: '"$RUNNER_TEMP/gitleaks" git --redact --verbose .'
+
+  kicad:
+    name: KiCad ERC/DRC + fabrication export
+    runs-on: ubuntu-latest
+    container:
+      image: kicad/kicad:8.0
+      options: --user root
+    env:
+      HOME: /root
+      PROJECT: hardware/brickpi3/BrickPi-Kicad-Project
+    steps:
+      - uses: actions/checkout@v4
+      - name: ERC
+        id: erc
+        # TODO: make blocking (remove continue-on-error) once the existing findings are fixed.
+        continue-on-error: true
+        run: |
+          mkdir -p out/fab
+          kicad-cli sch erc --severity-error --exit-code-violations \
+            -o out/erc.rpt "$PROJECT.kicad_sch"
+      - name: DRC
+        id: drc
+        # TODO: make blocking once the existing findings are fixed.
+        continue-on-error: true
+        run: |
+          kicad-cli pcb drc --schematic-parity --severity-error --exit-code-violations \
+            -o out/drc.rpt "$PROJECT.kicad_pcb"
+      - name: Export Gerbers and drill files
+        run: |
+          kicad-cli pcb export gerbers --board-plot-params -o out/fab/ "$PROJECT.kicad_pcb"
+          kicad-cli pcb export drill -o out/fab/ "$PROJECT.kicad_pcb"
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## KiCad"
+            echo "- ERC: ${{ steps.erc.outcome }}"
+            echo "- DRC: ${{ steps.drc.outcome }}"
+            echo '```'
+            tail -n 5 out/erc.rpt out/drc.rpt 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hardware-fab
+          path: out/

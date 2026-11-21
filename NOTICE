@@ -1,0 +1,50 @@
+brickpi
+=======
+
+This project is an independent re-implementation ("clone") of the BrickPi3
+board by Dexter Industries. It is not affiliated with, endorsed by or supported
+by Dexter Industries / Modular Robotics.
+
+Third-party work this project is based on
+-----------------------------------------
+
+BrickPi3 (hardware design reference v3.2.1, firmware protocol, Python driver)
+  https://github.com/DexterInd/BrickPi3
+  Copyright (c) 2017 Dexter Industries
+  Released under the MIT License:
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+Where it is used here:
+  - hardware/brickpi3/  – KiCad schematic and PCB redrawn from the BrickPi3
+                          v3.2.1 reference schematic.
+  - docs/PROTOCOL.md    – SPI protocol description derived from
+                          Software/Python/brickpi3.py.
+
+KiCad library parts embedded in the KiCad files (symbols/footprints from the
+KiCad standard libraries, SparkFun, Seeed OPL and vendor libraries) remain
+under their respective licenses. 3D models are not distributed in this
+repository.
+
+Trademarks
+----------
+
+LEGO(R) and MINDSTORMS(R) are trademarks of the LEGO Group, which does not
+sponsor, authorize or endorse this project. Raspberry Pi is a trademark of
+Raspberry Pi Ltd. BrickPi is a trademark of Dexter Industries.
