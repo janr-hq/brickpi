@@ -1,0 +1,38 @@
+# Normalize all text files to LF in the repository and in working trees.
+* text=auto eol=lf
+
+# KiCad sources are text (S-expressions / JSON) – keep LF, diff as text.
+*.kicad_pro   text eol=lf
+*.kicad_sch   text eol=lf
+*.kicad_pcb   text eol=lf
+*.kicad_sym   text eol=lf
+*.kicad_mod   text eol=lf
+*.kicad_dru   text eol=lf
+*.kicad_wks   text eol=lf
+*-lib-table   text eol=lf
+
+# Fabrication outputs are text but generated – do not show huge diffs.
+*.gbr         text eol=lf -diff
+*.drl         text eol=lf -diff
+
+# Shell scripts must stay LF even on Windows checkouts.
+*.sh          text eol=lf
+
+# Binary CAD / 3D / archives / media.
+*.FCStd       binary
+*.FCBak       binary
+*.stl         binary
+*.step        binary
+*.stp         binary
+*.wrl         binary
+*.3mf         binary
+*.zip         binary
+*.bin         binary
+*.elf         binary
+*.png         binary
+*.jpg         binary
+*.jpeg        binary
+*.gif         binary
+*.ico         binary
+*.pdf         binary
+*.mp4         binary

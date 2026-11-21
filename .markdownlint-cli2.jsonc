@@ -1,0 +1,11 @@
+{
+  "config": {
+    "default": true,
+    // Long table rows and URLs are normal in hardware docs.
+    "MD013": false,
+    // Keep a Changelog repeats "Added"/"Fixed" under each release.
+    "MD024": { "siblings_only": true }
+  },
+  "globs": ["**/*.md"],
+  "ignores": ["**/node_modules/**"]
+}

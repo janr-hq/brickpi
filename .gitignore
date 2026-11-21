@@ -1,0 +1,70 @@
+# --- KiCad ---
+*-backups/
+*.bak
+*-bak
+*.kicad_sch-bak
+*.kicad_pcb-bak
+*.kicad_prl
+*.lck
+~*.lck
+_autosave-*
+\#auto_saved_files\#
+*-save.kicad_pro
+*-save.kicad_sch
+*-save.kicad_pcb
+fp-info-cache
+*-rescue.kicad_sym
+# Generated fabrication outputs (produced by CI, see hardware/README.md)
+hardware/**/fab/
+hardware/**/gerbers/
+hardware/**/bom/
+*.erc
+*.rpt
+
+# --- FreeCAD ---
+*.FCBak
+*.FCStd1
+
+# --- Office / editor temp files ---
+~$*
+~WRL*.tmp
+.~lock.*
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Never commit credentials or local notes ---
+credentials*
+*.env
+.env
+.env.*
+*secret*
+*.pem
+*.key
+
+# --- Python / Rust (driver, simulation) ---
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+target/
+
+# --- IDE ---
+.idea
+.vscode
+
+# --- Local agent / sandbox artefacts (shared agent roles may live in .claude/agents/) ---
+.claude/*
+!.claude/agents/
+/.mcp.json
+/.bash_profile
+/.bashrc
+/.profile
+/.zprofile
+/.zshrc
+/.gitconfig
+/.gitmodules
+/.ripgreprc
