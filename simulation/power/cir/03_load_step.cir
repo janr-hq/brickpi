@@ -1,0 +1,61 @@
+* 03 - Current board (REV2) load steps: Raspberry Pi boot 0 -> PI_I and two motors
+*      starting / stalled on VCC, fed from a 3S Li-ion pack at SOC.
+* Chain: pack -> SW1 -> D15 -> VCC (CP6 120u + 10u) -> LM2576 -> L1 -> CP7 1000u
+*        -> F1 PTC -> 5 V rail (3V3 LDO, 9 V boost) -> header pin 2 -> Pi
+.include ../models/brickpi_power.lib
+
+.param PI_I=3 T_PI=8m T_MOT=20m STALL=1 SOC=0.5 TSTOP=35m
+.param ISAT=2.0 DCR=0.12 RPATH=0.03
+* error-amplifier transconductance of the assumed LM2576 compensation (sensitivity)
+.param GM_EA=1m
+
+* source: 3S Li-ion, SW1 + connector (assumed 20 mOhm)
+XB bat 0 soc LIION_PACK params: NS=3 SOC0={SOC}
+Rsw bat b1 0.02
+Vi_bat b1 b2 0
+D15 b2 vcc SK24A_FIT
+Cv1 vcc cv1 120u IC=10.9
+Rcv1 cv1 0 0.15
+Cv2 vcc cv2 10u IC=10.9
+Rcv2 cv2 0 0.5
+
+* motors on VCC (TB6612 channels at 100 % duty)
+XM1 vcc 0 MOTOR_TB6612 params: STALL={STALL} TON={T_MOT}
+XM2 vcc 0 MOTOR_TB6612 params: STALL={STALL} TON={T_MOT}
+
+* LM2576-5 stage
+Vi_in vcc vin_ic 0
+XU1 vin_ic sw 0 out LM2576_5 params: VC0=0.45 GM={GM_EA}
+D13 0 sw SBR10E45_FIT
+XL1 sw lo LSAT params: L0=100u ISAT={ISAT} DCR={DCR} I0=0.12
+Vi_l lo out 0
+Cout out cx 1000u IC=5
+Rcx cx 0 0.05
+
+* F1 and 5 V rail with on-board loads (3V3 ~60 mA, 9 V ~30 mA, assumed)
+XF1 out v5r tj PTC params: TA=25
+Cr v5r 0 10u IC=5
+X33 v5r v33 0 MIC5504
+Rl33 v33 0 55
+X9 v5r v9 0 AP3012_AVG
+Rl9 v9 0 300
+
+* Raspberry Pi: header pin 2 + traces, input capacitance (assumed 47u), load
+Rpath v5r vpi {RPATH}
+Cpi vpi 0 47u IC=5
+Vprof prof 0 PWL(0 0 {T_PI} 0 {T_PI+50u} {PI_I})
+Bpi vpi 0 I = V(prof) * (V(vpi) > 4.2 ? 1 : max(V(vpi),0)/4.2)
+
+.options method=gear reltol=1e-3 abstol=1e-9 vntol=1e-6 itl4=100
+.tran 0.5u {TSTOP} 0 50n uic
+
+.control
+set wr_singlescale
+set wr_vecnames
+option numdgt=7
+run
+linearize v(bat) i(vi_bat) v(vcc) v(out) i(vi_l) v(vpi) i(vi_in) i(v.xm1.vim) i(v.xm2.vim)
+wrdata data.txt v(bat) i(vi_bat) v(vcc) v(out) i(vi_l) v(vpi) i(vi_in) i(v.xm1.vim) i(v.xm2.vim)
+quit
+.endc
+.end

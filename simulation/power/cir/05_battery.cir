@@ -1,0 +1,54 @@
+* 05 - Battery run time with averaged (non-switching) regulator models.
+* CHEM=1 Li-ion 18650 pack (NS cells in series), CHEM=2 NiMH AA pack.
+* TOPO=1 current board (D15 + LM2576 + F1 PTC + 1 header pin)
+* TOPO=2 proposed (P-MOSFET + synchronous buck + both header pins)
+* Loads: Raspberry Pi I5 on the 5 V rail, board 3V3/9V, motors IMOT average from VCC.
+.include ../models/brickpi_power.lib
+
+.param CHEM=1 NS=3 CAH=2.6 TOPO=1 I5=2.0 IMOT=0.3 TSTOP=14400
+
+.if (CHEM == 1)
+XB bat 0 soc LIION_PACK params: NS={NS} CAH={CAH}
+.else
+XB bat 0 soc NIMH_PACK params: NS={NS} CAH={CAH}
+.endif
+Rsw bat b1 0.02
+Vi_bat b1 b2 0
+
+.if (TOPO == 1)
+D15 b2 vcc SK24A_FIT
+XU1 vcc out 0 LM2576_AVG params: DCR=0.12
+XF1 out v5r tj PTC params: TA=25
+Rpath v5r vpi 0.03
+.else
+XQ1 b2 vcc 0 PFET_RP
+XU1 vcc out 0 SBUCK_AVG
+Rfuse out v5r 0.005
+Rtj tj 0 1
+Rpath v5r vpi 0.015
+.endif
+Cv vcc 0 120u
+Cout out 0 1000u
+
+X33 v5r v33 0 MIC5504
+Rl33 v33 0 55
+X9 v5r v9 0 AP3012_AVG
+Rl9 v9 0 300
+* motors: average current from VCC (TB6612 stops below ~4.5 V)
+Bmot vcc 0 I = {IMOT} * (V(vcc) > 4.5 ? 1 : max(V(vcc),0)/4.5)
+* Raspberry Pi: constant current above 4.2 V, resistive below
+Bpi vpi 0 I = {I5} * (V(vpi) > 4.2 ? 1 : max(V(vpi),0)/4.2)
+
+.ic v(soc)=1
+.tran 2 {TSTOP} 0 5
+
+.control
+set wr_singlescale
+set wr_vecnames
+option numdgt=7
+run
+linearize v(bat) i(vi_bat) v(vcc) v(out) v(vpi) v(soc) v(tj)
+wrdata data.txt v(bat) i(vi_bat) v(vcc) v(out) v(vpi) v(soc) v(tj)
+quit
+.endc
+.end
