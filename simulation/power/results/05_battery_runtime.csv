@@ -1,0 +1,13 @@
+source,stage,load,p_battery_W_at_10min,p_pi_W,eff_5V_path_at_10min,runtime_h,ends_by,soc_left_at_end,t_to_recommended_cutoff_h
+2S,current,pi5,17.1,9.698,0.6492,0.6056,rail < 4.75 V,0.4704,1.029
+2S,current,pi4,11.13,5.897,0.663,1.506,rail < 4.75 V,0.1325,1.623
+2S,proposed,pi5,13.36,9.919,0.9007,1.389,cell cut-off,0.02844,1.336
+2S,proposed,pi4,9.243,5.97,0.8721,2.068,cell cut-off,0.01901,2.006
+3S,current,pi5,17.27,9.698,0.7009,1.622,cell cut-off,0.0235,1.569
+3S,current,pi4,11.89,5.897,0.7032,2.427,cell cut-off,0.01554,2.358
+3S,proposed,pi5,14.59,9.919,0.9025,1.966,cell cut-off,0.0187,1.906
+3S,proposed,pi4,10.5,5.97,0.8716,2.796,cell cut-off,0.01321,2.713
+8AA,current,pi5,17.01,9.698,0.675,0.9861,cell cut-off,0.06248,0.9861
+8AA,current,pi4,11.41,5.897,0.6862,1.595,cell cut-off,0.02842,1.595
+8AA,proposed,pi5,13.86,9.919,0.9026,1.279,cell cut-off,0.04033,1.279
+8AA,proposed,pi4,9.833,5.97,0.8726,1.899,cell cut-off,0.02367,1.899

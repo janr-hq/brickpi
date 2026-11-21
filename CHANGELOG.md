@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Power-stage SPICE simulation with ngspice (`simulation/power/`): behavioural models
+  (LM2576-5, synchronous buck, PTC electro-thermal, saturating inductor, P-MOSFET,
+  TB6612 + motor, Li-ion / NiMH packs), netlists for efficiency, D15 / PTC losses,
+  load steps and battery run time, `run.sh` / `run.py` producing CSV + PNG results.
+- `docs/SIMULATION.md` – simulator comparison (ngspice / LTspice / Qucs-S), model
+  licences, assumptions and limits; `simulation/RESULTS.md` – results and
+  recommendations for the power-stage redesign.
+- `simulation/power/check.py` (assertions on key results) and a CI smoke job running one
+  sweep per simulation family.
+
+### Changed
+
+- `simulation/RESULTS.md`: wording of model-vs-datasheet agreement, 5 A conclusion and
+  hot-spot claim toned down; vendor model links marked as unverified.
+
 ## [0.1.0-dev] - 2026-11-21
 
 ### Added

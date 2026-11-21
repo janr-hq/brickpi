@@ -1,0 +1,47 @@
+* 01 - LM2576-5 buck (current board) at a constant load: efficiency, losses, ripple
+* Topology from hardware/brickpi3/power.kicad_sch: CP6 120u in, IC3 LM2576S-5,
+* D13 SBR10E45P5 catch diode, L1 100u (SDR1806), CP7 1000u out. FB at CP7.
+* run.py overrides the .param lines below (VIN, ILOAD, ISAT, ...).
+.include ../models/brickpi_power.lib
+
+.param VIN=12 ILOAD=3
+* L1 saturation current (L drops to 90 %) and DCR (assumed, see docs/SIMULATION.md)
+.param ISAT=2.0 DCR=0.12
+* CP7 ESR (assumed, low-ESR electrolytic 10x12.5 mm)
+.param ESR_OUT=0.05
+.param TSTART=18m TSTOP=24m
+
+* source: bench supply after D15 (D15 is analysed separately in 02)
+Vsrc vsrc 0 {VIN}
+Rsrc vsrc vin 0.02
+Cin vin cin1 120u IC={VIN}
+Rcin cin1 0 0.15
+Cin2 vin 0 1u IC={VIN}
+
+Vi_in vin vin_ic 0
+XU1 vin_ic sw_ic 0 out LM2576_5 params: VC0={0.42+0.03*ILOAD}
+Vi_sw sw_ic sw 0
+* catch diode D13 (current sense in series)
+Vi_d 0 da 0
+D13 da sw SBR10E45_FIT
+* L1 with soft saturation
+XL1 sw lo LSAT params: L0=100u ISAT={ISAT} DCR={DCR} I0={ILOAD}
+Vi_l lo out 0
+* CP7
+Cout out cx 1000u IC=5
+Rcx cx 0 {ESR_OUT}
+* load (constant current, e.g. Pi + board before F1)
+Iload out 0 {ILOAD}
+
+.options method=gear reltol=1e-3 abstol=1e-9 vntol=1e-6 itl4=100
+.tran 20n {TSTOP} {TSTART} 50n uic
+
+.control
+set wr_singlescale
+set wr_vecnames
+option numdgt=8
+run
+wrdata data.txt v(vin) i(vi_in) v(sw) i(vi_sw) i(vi_d) i(vi_l) v(out)
+quit
+.endc
+.end

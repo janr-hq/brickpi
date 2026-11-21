@@ -1,0 +1,29 @@
+* 02b - F1 polymer PTC (0ZCG0200FF2C class) on the 5 V rail: drop, loss, trip time
+* F1 sits after the LM2576 feedback point, so its drop is NOT regulated out.
+* PROFILE=0: constant load ILOAD; PROFILE=1: staircase 1 / 2 / 2.5 / 3 / 3.5 A, 60 s each.
+.include ../models/brickpi_power.lib
+
+.param ILOAD=3 TA=25 PROFILE=0 TSTOP=120
+* header pin 2 + traces (assumed 30 mOhm; only one 5 V pin is connected)
+.param RPATH=0.03
+
+* LM2576 output, regulated at its feedback pin (before F1)
+V5 v5 0 5.0
+Vi_f v5 v5a 0
+XF1 v5a vf tj PTC params: TA={TA}
+Rpath vf vpi {RPATH}
+Vprof prof 0 PWL(0 1 60 1 60.01 2 120 2 120.01 2.5 180 2.5 180.01 3 240 3 240.01 3.5)
+* Raspberry Pi: constant current above 4.2 V, resistive below (brown-out)
+Bload vpi 0 I = ({PROFILE}*V(prof) + (1-{PROFILE})*{ILOAD}) * (V(vpi) > 4.2 ? 1 : max(V(vpi),0)/4.2)
+
+.tran 10m {TSTOP} 0 20m uic
+
+.control
+set wr_singlescale
+set wr_vecnames
+option numdgt=8
+run
+wrdata data.txt v(vf) v(vpi) v(tj) i(vi_f)
+quit
+.endc
+.end

@@ -1,0 +1,31 @@
+* 02 - D15 (SK24A Schottky) vs reverse-polarity P-MOSFET: forward drop and loss vs current
+* DC sweep of the load current 0..5 A at 25 C and 75 C (D15 runs hot on the board).
+.include ../models/brickpi_power.lib
+
+Vb a 0 12
+* current D15
+D15 a k1 SK24A_FIT
+B1 k1 0 I = V(s)
+* proposed P-MOSFET (drain to battery, source to load, gate to GND)
+XQ1 a k2 0 PFET_RP
+B2 k2 0 I = V(s)
+* sweep variable (amperes)
+Vs s 0 0
+
+.control
+set wr_singlescale
+set wr_vecnames
+option numdgt=8
+option temp=25
+dc Vs 0 5 0.05
+let vf_d15 = v(a) - v(k1)
+let vf_pfet = v(a) - v(k2)
+wrdata data_25.txt vf_d15 vf_pfet
+option temp=75
+dc Vs 0 5 0.05
+let vf_d15 = v(a) - v(k1)
+let vf_pfet = v(a) - v(k2)
+wrdata data_75.txt vf_d15 vf_pfet
+quit
+.endc
+.end

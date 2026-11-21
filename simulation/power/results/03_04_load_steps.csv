@@ -1,0 +1,8 @@
+case,stage,pi_step_A,soc,vpi_before_V,vpi_min_pi_step_V,vpi_settled_V,vpi_min_motor_step_V,vout5_min_V,time_vpi_below_4.63V_ms,vcc_min_V,il_peak_A,il_avg_settled_A,ibat_peak_A,imotor_each_end_A
+03_step_pi3_soc0.5,current board,3,0.5,5.052,3.696,4.843,4.686,3.87,1.301,9.264,5.634,3.13,6.91,2.085
+03_step_pi3_soc0.1,current board,3,0.1,5.05,3.809,4.843,4.675,3.989,1.272,8.424,5.163,3.13,6.642,1.892
+03_step_pi3_soc0.5_gm3,"current board, 3x faster loop",3,0.5,5.013,4.269,4.843,4.778,4.467,0.4565,9.266,5.556,3.13,6.903,2.085
+03_step_pi3_soc0.5_l10,"current board, non-saturating L1",3,0.5,5.052,3.691,4.843,4.673,3.865,1.176,9.272,5.184,3.13,6.874,2.085
+04b_step_pi3_soc0.5,proposed,3,0.5,5,4.889,4.955,4.953,4.932,0,10.01,4.116,3.127,6.292,2.235
+04b_step_pi5_soc0.5,proposed,5,0.5,5,4.815,4.925,4.923,4.888,0,9.789,6.231,5.127,7.407,2.19
+04b_step_pi5_soc0.1,proposed,5,0.1,5,4.816,4.925,4.924,4.889,0,8.908,6.178,5.127,7.255,1.994

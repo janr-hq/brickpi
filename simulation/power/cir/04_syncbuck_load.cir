@@ -1,0 +1,40 @@
+* 04 - Proposed 5 V / 5-6 A synchronous buck (generic behavioural, TPS56637 class)
+*      at a constant load: efficiency, losses, ripple. Same metrics as 01.
+.include ../models/brickpi_power.lib
+
+.param VIN=12 ILOAD=3
+* 3.3 uH shielded power inductor (assumed: Isat 9 A, DCR 8 mOhm)
+.param ISAT=9 DCR=0.008
+.param TSTART=1.6m TSTOP=2.0m
+
+Vsrc vsrc 0 {VIN}
+Rsrc vsrc vin 0.02
+Cin vin cin1 120u IC={VIN}
+Rcin cin1 0 0.15
+Cin2 vin cin2 20u IC={VIN}
+Rcin2 cin2 0 3m
+
+Vi_in vin vin_ic 0
+XU1 vin_ic sw_ic 0 out SBUCK params: VC0={ILOAD+1.5}
+Vi_sw sw_ic sw 0
+XL1 sw lo LSAT params: L0=3.3u ISAT={ISAT} DCR={DCR} I0={ILOAD}
+Vi_l lo out 0
+* 2 x 22 uF ceramic + 220 uF polymer
+Cout1 out c1 44u IC=5
+Rc1 c1 0 3m
+Cout2 out c2 220u IC=5
+Rc2 c2 0 15m
+Iload out 0 {ILOAD}
+
+.options method=gear reltol=1e-3 abstol=1e-9 vntol=1e-6 itl4=100
+.tran 5n {TSTOP} {TSTART} 10n uic
+
+.control
+set wr_singlescale
+set wr_vecnames
+option numdgt=8
+run
+wrdata data.txt v(vin) i(vi_in) v(sw) i(vi_sw) i(vi_l) v(out)
+quit
+.endc
+.end

@@ -1,0 +1,247 @@
+* brickpi power stage – behavioural SPICE models for ngspice (>= 40)
+*
+* SPDX-License-Identifier: MIT
+* Written for this repository. NOT vendor models: every model below is a
+* behavioural or curve-fitted approximation built from public datasheet
+* figures (typical values). See docs/SIMULATION.md for sources and limits.
+* Values marked (assumed) are estimates that should be replaced by
+* measurements or exact datasheet values.
+
+* ---------------------------------------------------------------------------
+* Diodes (curve fits: Vf = N*Vt*ln(I/IS) + I*RS at 27 C)
+* ---------------------------------------------------------------------------
+* D15 SK24A 2 A / 40 V Schottky: ~0.41 V @ 0.5 A, 0.50 V @ 2 A, 0.59 V @ 4 A
+.model SK24A_FIT D(IS=5.4e-7 N=1.1 RS=0.035 CJO=150p M=0.5 EG=0.69 XTI=2 BV=40 IBV=1e-4)
+* D13 SBR10E45P5 10 A / 45 V catch diode of the LM2576: ~0.41 V @ 3 A
+* (junction capacitance omitted: with ideal switch edges it only adds
+*  unrealistic current spikes; capacitive switching loss is not modelled)
+.model SBR10E45_FIT D(IS=5e-6 N=1.1 RS=0.012 EG=0.69 XTI=2 BV=45 IBV=1e-4)
+* helper diodes
+.model DCLAMP D(IS=1e-14 N=0.05)
+.model DBODY D(IS=1e-12 N=1.0 RS=0.01)
+.model DZ10 D(IS=1e-14 BV=10 IBV=1m)
+
+* Analytic counterparts of the fits above (used by the averaged models)
+.func vsat_lm(i) {0.025865*ln(abs(i)/3.3e-15+1)+0.17*abs(i)}
+.func vd_sbr(i) {1.1*0.025865*ln(abs(i)/5e-6+1)+0.012*abs(i)}
+
+* ---------------------------------------------------------------------------
+* LM2576-5 – switching behavioural model (fixed 5 V version)
+*   52 kHz fixed-frequency PWM, Darlington switch Vsat ~1.0 V @ 1 A,
+*   1.4 V @ 3 A, cycle-by-cycle limit ILIM (5.8 A typ), Iq 5 mA,
+*   internal divider 1.23 V * (1 + 3.1k/1k). The real internal compensation
+*   is unknown: a PI error amplifier (GM, RZ, CI) is used instead.
+*   Pins: vin  out(switch pin)  gnd  fb
+* ---------------------------------------------------------------------------
+.subckt LM2576_5 vin out gnd fb params: FSW=52k ILIM=5.8 DMAX=0.98 IQ=5m RON=0.17
++ GM=1m RZ=500 CI=0.8u VC0=0.45
+Biq vin gnd I = {IQ}*tanh(max(V(vin,gnd),0))
+Rf1 fb nfb 3.1k
+Rf2 nfb gnd 1k
+* error amplifier + PI compensation with anti-windup clamp
+Bea gnd vc I = {GM}*(1.23 - V(nfb,gnd))
+Rz vc vcz {RZ}
+Ci vcz gnd {CI} IC={VC0}
+Rlk vc gnd 100Meg
+Dhi vc hi DCLAMP
+Vhi hi gnd 1.05
+Dlo lo vc DCLAMP
+Vlo lo gnd -0.05
+Bvcl vcl gnd V = min(max(V(vc,gnd),0),{DMAX})
+* oscillator: saw-tooth 0..1 V and a 40 ns set pulse at the start of a cycle
+Vramp ramp gnd PULSE(0 1 0 {1/FSW-10n} 10n 0 {1/FSW})
+Vclk clk gnd PULSE(0 1 0 1n 1n 40n {1/FSW})
+* reset: PWM comparator, max duty, cycle-by-cycle current limit
+* (current limit blanked for the first 1 % of the cycle, ~190 ns)
+Brst rst gnd V = ((V(ramp,gnd) > V(vcl,gnd)) || (V(ramp,gnd) > {DMAX}) || ((I(Vsns) > {ILIM}) && (V(ramp,gnd) > 0.01))) ? 1 : 0
+* SR latch (set dominant during the clock pulse), memory through RC
+Bq q gnd V = (V(clk,gnd) > 0.5) ? 1 : ((V(rst,gnd) > 0.5) ? 0 : ((V(qd,gnd) > 0.5) ? 1 : 0))
+Rqd q qd 1k
+Cqd qd gnd 5p IC=0
+* power switch: ideal switch + Darlington saturation (diode + RON)
+Vsns vin sa 0
+S1 sa sb q gnd SWLM
+Dsat sb out DSATLM
+.model SWLM SW(VT=0.5 VH=0.1 RON=1m ROFF=10Meg)
+.model DSATLM D(IS=3.3e-15 N=1 RS={RON})
+.ends LM2576_5
+
+* ---------------------------------------------------------------------------
+* LM2576-5 – averaged (non-switching) model for long simulations
+*   Same loss mechanisms as the switching model: switch Vsat, catch diode,
+*   inductor DCR, Iq and a switching-transition term 0.5*Vin*I*TSW*FSW.
+*   No inductor saturation, no ripple, ideal regulation dynamics.
+*   Pins: vin out gnd
+* ---------------------------------------------------------------------------
+.subckt LM2576_AVG vin out gnd params: VO=5 DMAX=0.98 IQ=5m DCR=0.12 TSW=100n FSW=52k
+Vio outp out 0
+Bvo outp gnd V = max(min({VO}, {DMAX}*(V(vin,gnd)-vsat_lm(I(Vio))) - (1-{DMAX})*vd_sbr(I(Vio)) - I(Vio)*{DCR}), 0)
+Bd dd gnd V = min({DMAX}, max(0, (V(outp,gnd)+vd_sbr(I(Vio))+I(Vio)*{DCR})/max(V(vin,gnd)-vsat_lm(I(Vio))+vd_sbr(I(Vio)),0.1)))
+Rd dd gnd 1Meg
+Bpl pl gnd V = vsat_lm(I(Vio))*abs(I(Vio))*V(dd,gnd) + vd_sbr(I(Vio))*abs(I(Vio))*(1-V(dd,gnd)) + I(Vio)*I(Vio)*{DCR} + 0.5*max(V(vin,gnd),0)*abs(I(Vio))*{TSW}*{FSW}
+Rpl pl gnd 1Meg
+Bin vin gnd I = (V(outp,gnd)*I(Vio) + V(pl,gnd))/max(V(vin,gnd),0.5) + {IQ}*tanh(max(V(vin,gnd),0))
+.ends LM2576_AVG
+
+* ---------------------------------------------------------------------------
+* Generic synchronous buck 5 V / 5-6 A – switching behavioural model
+*   Class of TI TPS56637 / TPS54560-type parts (NOT a vendor model):
+*   500 kHz, peak-current-mode with slope compensation, HS/LS on-resistance
+*   RHS/RLS, ~14 ns dead time with body diodes, max duty DMAX.
+*   Error amplifier output V(vc) is the peak-current command in amperes.
+*   Pins: vin sw gnd fb (fb = output voltage, internal reference VO)
+* ---------------------------------------------------------------------------
+.subckt SBUCK vin sw gnd fb params: VO=5 FSW=500k ILIM=8 DMAX=0.9 IQ=1m RHS=0.025 RLS=0.012
++ GM=1 RZ=33 CI=2.4u SEA=2 VC0=3
+Biq vin gnd I = {IQ}*tanh(max(V(vin,gnd),0))
+Bea gnd vc I = {GM}*({VO} - V(fb,gnd))
+Rz vc vcz {RZ}
+Ci vcz gnd {CI} IC={VC0}
+Rlk vc gnd 100Meg
+Dhi vc hi DCLAMP
+Vhi hi gnd {ILIM}
+Dlo lo vc DCLAMP
+Vlo lo gnd -2
+Vramp ramp gnd PULSE(0 1 0 {1/FSW-5n} 5n 0 {1/FSW})
+Vclk clk gnd PULSE(0 1 0 1n 1n 30n {1/FSW})
+* (comparators blanked for the first 4 % of the cycle, ~80 ns)
+Brst rst gnd V = (V(ramp,gnd) > 0.04) && ((I(Vsns) + {SEA}*V(ramp,gnd) > V(vc,gnd)) || (V(ramp,gnd) > {DMAX}) || (I(Vsns) > {ILIM})) ? 1 : 0
+Bq q gnd V = (V(clk,gnd) > 0.5) ? 1 : ((V(rst,gnd) > 0.5) ? 0 : ((V(qd,gnd) > 0.5) ? 1 : 0))
+Rqd q qd 1k
+Cqd qd gnd 2p IC=0
+* dead time: gate signals from q and q delayed by ~14 ns
+Rdl q qdl 1k
+Cdl qdl gnd 20p IC=0
+Bghs ghs gnd V = (V(q,gnd) > 0.5 && V(qdl,gnd) > 0.5) ? 1 : 0
+Bgls gls gnd V = (V(q,gnd) < 0.5 && V(qdl,gnd) < 0.5) ? 1 : 0
+Vsns vin sa 0
+Shs sa sw ghs gnd SWHS
+Sls sw gnd gls gnd SWLS
+Dhs sw sa DBODY
+Dls gnd sw DBODY
+.model SWHS SW(VT=0.5 VH=0.1 RON={RHS} ROFF=10Meg)
+.model SWLS SW(VT=0.5 VH=0.1 RON={RLS} ROFF=10Meg)
+.ends SBUCK
+
+* ---------------------------------------------------------------------------
+* Synchronous buck – averaged model (same parameters as SBUCK)
+*   Losses: conduction (RHS, RLS, DCR), transitions 0.5*Vin*I*TSW*FSW,
+*   gate drive + Iq (PDRV). Pins: vin out gnd
+* ---------------------------------------------------------------------------
+.subckt SBUCK_AVG vin out gnd params: VO=5 DMAX=0.9 IQ=1m RHS=0.025 RLS=0.012 DCR=0.008
++ TSW=20n FSW=500k PDRV=0.05
+Vio outp out 0
+Bvo outp gnd V = max(min({VO}, {DMAX}*V(vin,gnd) - I(Vio)*({RHS}*{DMAX}+{RLS}*(1-{DMAX})+{DCR})), 0)
+Bd dd gnd V = min({DMAX}, max(0, V(outp,gnd)/max(V(vin,gnd),0.1)))
+Rd dd gnd 1Meg
+Bpl pl gnd V = I(Vio)*I(Vio)*({RHS}*V(dd,gnd)+{RLS}*(1-V(dd,gnd))+{DCR}) + 0.5*max(V(vin,gnd),0)*abs(I(Vio))*{TSW}*{FSW} + {PDRV}
+Rpl pl gnd 1Meg
+Bin vin gnd I = (V(outp,gnd)*I(Vio) + V(pl,gnd))/max(V(vin,gnd),0.5) + {IQ}*tanh(max(V(vin,gnd),0))
+.ends SBUCK_AVG
+
+* ---------------------------------------------------------------------------
+* Inductor with soft saturation and DCR (state = current, held on node x)
+*   L(i) = L0*(KR + (1-KR)/(1+(i/I50)^4)); ISAT = current where L = 0.9*L0
+*   Pins: a b
+* ---------------------------------------------------------------------------
+.subckt LSAT a b params: L0=100u KR=0.2 ISAT=2 DCR=0.12 I0=0
+.param I50 = {ISAT/sqrt(sqrt((1-KR)/(0.9-KR)-1))}
+Rdcr a m {DCR}
+Bl m b I = V(x)
+Bx 0 x I = V(m,b)/({L0}*({KR}+(1-{KR})/(1+(V(x)*V(x)/({I50}*{I50}))*(V(x)*V(x)/({I50}*{I50})))))
+Cx x 0 1 IC={I0}
+.ends LSAT
+
+* ---------------------------------------------------------------------------
+* Polymer PTC fuse, electro-thermal behavioural model (F1 0ZCG0200FF2C class:
+*   Ihold 2 A, Itrip ~3.5 A, R ~20-70 mOhm (assumed, 1812 2 A typical)).
+*   R(T) = R0*(1+ALPHA*(T-25)) + RHI/(1+exp(-(T-TSW)/DT))
+*   Thermal: RTH (K/W) to ambient TA, heat capacity CTH (J/K).
+*   Pins: a b tj (tj voltage = body temperature in deg C)
+* ---------------------------------------------------------------------------
+.subckt PTC a b tj params: R0=0.035 ALPHA=0.005 TSW=125 DT=3 RHI=50 RTH=226 CTH=0.05 TA=25
+.func rptc(t) {{R0}*(1+{ALPHA}*(t-25)) + {RHI}/(1+exp(-(t-{TSW})/{DT}))}
+Bres a b I = V(a,b)/rptc(V(tj))
+Bpow 0 tj I = V(a,b)*V(a,b)/rptc(V(tj))
+Cth tj 0 {CTH} IC={TA}
+Rth tj tamb {RTH}
+Vta tamb 0 {TA}
+.ends PTC
+
+* ---------------------------------------------------------------------------
+* Reverse-polarity P-MOSFET (drain to battery, source to load, gate to GND)
+*   Level-1 PMOS tuned for ~12 mOhm at Vgs = -10 V (assumed, SO-8 30 V class),
+*   10 V gate-source zener clamp. Pins: in out gnd
+* ---------------------------------------------------------------------------
+.subckt PFET_RP in out gnd params: KPW=10.2
+M1 in g out out PMOS_RP W=1 L=1
+.model PMOS_RP PMOS(LEVEL=1 VTO=-1.8 KP={KPW} IS=1e-12 CBD=1n)
+Rg g gnd 100k
+Dz g out DZ10
+.ends PFET_RP
+
+* ---------------------------------------------------------------------------
+* MIC5504-3.3 LDO (behavioural): dropout ~160 mV @ 300 mA, Iq 38 uA
+* AP3012 boost 5 V -> 9 V (averaged): efficiency ETA
+*   Pins: vin vout gnd
+* ---------------------------------------------------------------------------
+.subckt MIC5504 vin vout gnd params: VO=3.3 RDO=0.53 IQ=38u
+Vio outp vout 0
+Bvo outp gnd V = max(min({VO}, V(vin,gnd) - I(Vio)*{RDO}), 0)
+Bin vin gnd I = I(Vio) + {IQ}
+.ends MIC5504
+
+.subckt AP3012_AVG vin vout gnd params: VO=9 ETA=0.8
+Vio outp vout 0
+Bvo outp gnd V = V(vin,gnd) > 2.6 ? {VO} : 0
+Bin vin gnd I = V(outp,gnd)*I(Vio)/({ETA}*max(V(vin,gnd),1))
+.ends AP3012_AVG
+
+* ---------------------------------------------------------------------------
+* TB6612 channel at 100 % duty + LEGO NXT/EV3-class DC motor (assumed values:
+*   ~2 A stall at 9 V incl. 0.5 Ohm driver Ron, ~170 rpm no-load at 9 V,
+*   reflected to the output shaft). Enabled at t = TON.
+*   STALL=1 -> blocked rotor (no back-EMF). Pins: vm gnd
+* ---------------------------------------------------------------------------
+.subckt MOTOR_TB6612 vm gnd params: RON=0.5 RM=4.0 LM=3m KE=0.49 J=3e-3 BF=1.6e-3 STALL=0 TON=0
+Ven en gnd PWL(0 0 {TON} 0 {TON+10u} 1)
+Sen vm d1 en gnd SWEN
+.model SWEN SW(VT=0.5 VH=0.1 RON={RON} ROFF=10Meg)
+Rm d1 d2 {RM}
+Lm d2 d3 {LM}
+Bemf d3 d4 V = {KE}*V(w)*(1-{STALL})
+Vim d4 gnd 0
+Btq 0 w I = {KE}*I(Vim)
+Cj w 0 {J}
+Rbf w 0 {1/BF}
+.ends MOTOR_TB6612
+
+* ---------------------------------------------------------------------------
+* Battery packs: OCV(SOC) table, series R, one RC polarisation branch,
+*   wiring/BMS resistance. SOC held on node soc (1 = full), discharged by the
+*   pack current. Pins: p n soc. Set the initial SOC with .ic v(<inst>.soc)=x
+*   or IC via SOC0 when using uic.
+* ---------------------------------------------------------------------------
+* Li-ion 18650 NMC-type cell (typical OCV curve), CAH in Ah per cell
+.subckt LIION_PACK p n soc params: NS=3 CAH=2.6 RCELL=0.045 RPOL=0.02 CPOL=2000 RWIRE=0.03 SOC0=1
+Bocv o n V = {NS}*pwl(max(min(V(soc,n),1),0), 0,3.00, 0.05,3.30, 0.10,3.45, 0.20,3.56, 0.30,3.63, 0.40,3.69, 0.50,3.75, 0.60,3.83, 0.70,3.92, 0.80,4.00, 0.90,4.08, 1.00,4.18)
+Rs o a {NS*RCELL}
+Rp a b {NS*RPOL}
+Cp a b {CPOL/NS}
+Vi b p2 0
+Rw p2 p {RWIRE}
+Csoc soc n {CAH*3600} IC={SOC0}
+Fsoc soc n Vi 1
+.ends LIION_PACK
+
+* NiMH AA cell (~2.0 Ah), RCELL includes the holder contact resistance
+.subckt NIMH_PACK p n soc params: NS=8 CAH=2.0 RCELL=0.045 RPOL=0.02 CPOL=1500 RWIRE=0.03 SOC0=1
+Bocv o n V = {NS}*pwl(max(min(V(soc,n),1),0), 0,1.00, 0.03,1.10, 0.08,1.17, 0.15,1.20, 0.30,1.22, 0.50,1.24, 0.70,1.26, 0.85,1.29, 0.95,1.33, 1.00,1.40)
+Rs o a {NS*RCELL}
+Rp a b {NS*RPOL}
+Cp a b {CPOL/NS}
+Vi b p2 0
+Rw p2 p {RWIRE}
+Csoc soc n {CAH*3600} IC={SOC0}
+Fsoc soc n Vi 1
+.ends NIMH_PACK

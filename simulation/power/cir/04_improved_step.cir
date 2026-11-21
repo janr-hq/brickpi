@@ -1,0 +1,54 @@
+* 04b - Proposed power stage, same load steps as 03:
+*       pack -> SW1 -> P-MOSFET (reverse polarity) -> VCC -> synchronous buck 5 V
+*       -> 5 V rail -> BOTH header pins (2 and 4) -> Pi. No PTC after the regulator
+*       (overcurrent handled by the buck current limit / an input eFuse).
+.include ../models/brickpi_power.lib
+
+.param PI_I=3 T_PI=8m T_MOT=20m STALL=1 SOC=0.5 TSTOP=35m
+.param RPATH=0.015
+
+XB bat 0 soc LIION_PACK params: NS=3 SOC0={SOC}
+Rsw bat b1 0.02
+Vi_bat b1 b2 0
+XQ1 b2 vcc 0 PFET_RP
+Cv1 vcc cv1 120u IC=11.2
+Rcv1 cv1 0 0.15
+Cv2 vcc cv2 20u IC=11.2
+Rcv2 cv2 0 3m
+
+XM1 vcc 0 MOTOR_TB6612 params: STALL={STALL} TON={T_MOT}
+XM2 vcc 0 MOTOR_TB6612 params: STALL={STALL} TON={T_MOT}
+
+Vi_in vcc vin_ic 0
+XU1 vin_ic sw 0 out SBUCK params: VC0=0.5
+XL1 sw lo LSAT params: L0=3.3u ISAT=9 DCR=0.008 I0=0.12
+Vi_l lo out 0
+Cout1 out c1 44u IC=5
+Rc1 c1 0 3m
+Cout2 out c2 220u IC=5
+Rc2 c2 0 15m
+
+X33 out v33 0 MIC5504
+Rl33 v33 0 55
+X9 out v9 0 AP3012_AVG
+Rl9 v9 0 300
+
+Rpath out vpi {RPATH}
+Cpi vpi 0 47u IC=5
+Vprof prof 0 PWL(0 0 {T_PI} 0 {T_PI+50u} {PI_I})
+Bpi vpi 0 I = V(prof) * (V(vpi) > 4.2 ? 1 : max(V(vpi),0)/4.2)
+
+.options method=gear reltol=1e-3 abstol=1e-9 vntol=1e-6 itl4=100
+* 0.1 us output grid: run.py averages over one 2 us switching period (no aliasing)
+.tran 0.1u {TSTOP} 0 20n uic
+
+.control
+set wr_singlescale
+set wr_vecnames
+option numdgt=7
+run
+linearize v(bat) i(vi_bat) v(vcc) v(out) i(vi_l) v(vpi) i(vi_in) i(v.xm1.vim) i(v.xm2.vim)
+wrdata data.txt v(bat) i(vi_bat) v(vcc) v(out) i(vi_l) v(vpi) i(vi_in) i(v.xm1.vim) i(v.xm2.vim)
+quit
+.endc
+.end
