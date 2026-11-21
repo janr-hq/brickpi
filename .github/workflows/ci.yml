@@ -34,6 +34,23 @@ jobs:
       - name: gitleaks (full git history)
         run: '"$RUNNER_TEMP/gitleaks" git --redact --verbose .'
 
+  simulation:
+    name: Power simulation smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ngspice and Python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ngspice python3-numpy python3-matplotlib
+      - name: Run one sweep per family (01 LM2576, 02 D15/P-MOSFET, 04 sync buck)
+        run: |
+          for p in 01_lm_v12 02_dc 04_sb_v12; do
+            NO_UV=1 bash simulation/power/run.sh --only "$p" --no-report
+          done
+      - name: Check key results against expected ranges
+        run: python3 simulation/power/check.py
+
   kicad:
     name: KiCad ERC/DRC + fabrication export
     runs-on: ubuntu-latest

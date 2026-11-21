@@ -29,6 +29,11 @@ for where to get them for a local cross-check). All models in
 `simulation/power/models/brickpi_power.lib` are written for this repository (MIT),
 either behavioural or curve-fitted to typical datasheet figures.
 
+The TI models mentioned below are covered by TI's model licence, whose text is included
+with each model download and in
+[TI's terms of use](https://www.ti.com/legal/terms-conditions/terms-of-use.html)
+(link not verified; read the licence shipped with the file you use).
+
 | Part (ref.) | Vendor model | Used here |
 | --- | --- | --- |
 | LM2576S-5 (IC3) | TI publishes PSpice/TINA-TI models on the product page under the TI model licence (no redistribution) | **Behavioural switching model**: 52 kHz PWM, Darlington switch (Vsat ≈ 1.0 V @ 1 A, 1.4 V @ 3 A), cycle-by-cycle limit 5.8 A, Iq 5 mA, internal 1.23 V reference and divider; plus an averaged model with the same loss terms |
@@ -67,7 +72,9 @@ simulation/power/run.sh --only 01_ --no-report   # just run a subset
 ```
 
 `run.sh` uses `uv run --script` (numpy and matplotlib come from the script header) or,
-with `NO_UV=1`, the system `python3`. Raw data goes to `simulation/power/out/` (ignored by
+with `NO_UV=1`, the system `python3`. `simulation/power/check.py` asserts that key results
+(efficiencies, losses, current limit) stay in expected ranges; CI runs one sweep per family
+plus these checks. Raw data goes to `simulation/power/out/` (ignored by
 git); unchanged cases are cached, `--force` re-runs everything. Each netlist in
 `simulation/power/cir/` also runs on its own: `cd simulation/power/cir && ngspice -b 01_lm2576_load.cir`
 (it writes `data.txt` into the current directory).

@@ -6,7 +6,7 @@ and of the proposed Raspberry Pi 5 stage. Netlists, models and the runner are in
 [docs/SIMULATION.md](../docs/SIMULATION.md). Raw numbers: `power/results/*.csv`.
 
 > **How far to trust this.** All parts are behavioural or curve-fitted models built from
-> typical datasheet figures, not vendor-validated models. Several key values are
+> typical datasheet figures; none was validated against a vendor model or a measurement. Several key values are
 > assumptions (L1 saturation current and DCR, F1 thermal data, LM2576 internal loop,
 > wiring resistances, battery parameters). Use the results for **trends and orders of
 > magnitude** and to decide what to measure; differences of a few percent or tens of
@@ -18,7 +18,7 @@ and of the proposed Raspberry Pi 5 stage. Netlists, models and the runner are in
 | Question | Result | Confidence |
 | --- | --- | --- |
 | LM2576 efficiency, 1–4 A, 12 V in | 85 % → 76 %; loss 0.9 → 6.4 W | good (loss terms from datasheet Vsat / Vf, DCR assumed) |
-| Can the LM2576 stage deliver 5 A? | **No.** With the assumed L1 (Isat 2 A) the 5.8 A switch limit is reached and 5 V collapses to 3.7 V (12 V in) / 2.8 V (9 V in) | medium (depends on L1 saturation) |
+| Can the LM2576 stage deliver 5 A? | **Probably not.** With the assumed L1 (Isat 2 A) the 5.8 A switch limit is reached and 5 V collapses to 3.7 V (12 V in) / 2.8 V (9 V in); with a non-saturating L1 it regulates but at 73 % efficiency | low (depends on the real L1 Isat – to be measured) |
 | D15 SK24A loss | 1.0 W @ 2 A, 1.65 W @ 3 A, 3.2 W @ 5 A (above its 2 A rating) | good |
 | F1 PTC | 2 A holds; 3 A trips in ~20 s (25 °C), 2.5 A trips in ~17 s at 50 °C board temperature; 80–170 mV unregulated drop before trip | medium (generic 2 A / 1812 PTC data) |
 | Pi 0 → 3 A step, current board | 5 V at the Pi dips to **3.7 V** (4.3 V with a 3× faster loop), below the ~4.63 V under-voltage level for 0.5–1.3 ms; settles at 4.84 V | low for the dip size (unknown LM2576 compensation), good for the settled value |
@@ -54,15 +54,17 @@ CP7 1000 µF / 50 mΩ. Efficiency includes an analytic estimate of switching-tra
 
 Conclusions:
 
-- The model reproduces the datasheet figure (~77 % at 12 V / 3 A) within ~2 %, which
-  supports the loss terms; the existing estimate of 3–4.5 W heat at 2–3 A in `docs/POWER.md`
-  is confirmed (2.3–4.1 W in the regulator + inductor, plus D15).
+- The result is consistent with the datasheet figure (~77 % at 12 V / 3 A; model 78.7 %),
+  but the model parameters were fitted to that datasheet data, so this is a consistency
+  check, not an independent validation. The existing estimate of 3–4.5 W heat at 2–3 A in
+  `docs/POWER.md` agrees with it (2.3–4.1 W in the regulator + inductor, plus D15).
 - The **Darlington switch** (1.0–1.4 V saturation) is the largest loss; the second is
   **L1 DCR** (I²·R, 1.9 W at 4 A if DCR is really 0.12 Ω). Both grow quickly with current.
 - With an inductor that saturates around 2 A the ripple and peak current grow (40 vs
-  26 mV at 3 A) and at 5 A the peak reaches the 5.8 A switch limit, so **the LM2576 stage
-  cannot supply a Pi 5 at 5 A** even before thermal limits. With a non-saturating inductor
-  5 A is regulated, but at 73 % efficiency and 9.3 W loss – not practical on this board.
+  26 mV at 3 A) and at 5 A the peak reaches the 5.8 A switch limit. If L1 really saturates
+  near 2 A (assumed, to be measured – see the end of this document), the LM2576 stage
+  would not hold 5 V at 5 A. With a non-saturating inductor 5 A is regulated, but at
+  73 % efficiency and 9.3 W loss, which is impractical thermally on this board.
 
 ## 2. D15 and the PTC fuse F1
 
@@ -93,8 +95,7 @@ LM2576 feedback point** this drop is never corrected.
 Conclusions:
 
 - D15 is a 2 A part carrying the whole board current; at 3 A (Pi 4 + motors, or Pi 5
-  idle + motors) it dissipates ~1.5–1.7 W in an SMA package, which matches the hot spot
-  seen with the thermal camera. A P-MOSFET cuts this loss by ~15× (0.1 W at 3 A).
+  idle + motors) it dissipates ~1.5–1.7 W in an SMA package. A P-MOSFET cuts this loss by ~15× (0.1 W at 3 A).
 - F1 is a reasonable protection for a Pi 3/4 (≤ 2 A) but **incompatible with a Pi 5**:
   normal Pi 5 peaks of 3 A trip it within seconds, earlier on a warm board.
   After tripping the Pi loses power until the load is removed and F1 cools.

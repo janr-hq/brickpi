@@ -20,7 +20,8 @@ Version **0.1.0-dev** – repository bootstrap. Nothing here is a finished produ
 | Driver (`driver/`) | Planned. Today the original DexterInd Python driver works unchanged (spidev only). |
 | Firmware (`firmware/`) | Planned. Today the original DexterInd binary v1.4.8 (ATSAMD21J18A) is flashed over SWD. |
 | Enclosure (`enclosure/`) | FreeCAD case for board + Raspberry Pi 5 (prototype). |
-| Robot, simulation | Planned. |
+| Simulation (`simulation/`) | Power-stage SPICE simulation (ngspice) available, see [docs/SIMULATION.md](docs/SIMULATION.md); protocol mock and robot simulation planned. |
+| Robot (`robot/`) | Planned. |
 
 ## Raspberry Pi compatibility
 

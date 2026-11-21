@@ -8,7 +8,9 @@ are **not committed**. Everything in this directory except this file is ignored 
 To cross-check a behavioural model against a vendor model, download it yourself from
 the product page, read its licence, and put it here:
 
-| Part | Where to look | Notes |
+All links below are **unverified** (not checked online); product pages may have moved.
+
+| Part | Where to look (unverified) | Notes |
 | --- | --- | --- |
 | LM2576 | <https://www.ti.com/product/LM2576> → Design & development → Models | PSpice/TINA-TI transient model, TI licence |
 | TPS56637 | <https://www.ti.com/product/TPS56637> → Models | PSpice transient model, TI licence |

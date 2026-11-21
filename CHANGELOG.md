@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/SIMULATION.md` – simulator comparison (ngspice / LTspice / Qucs-S), model
   licences, assumptions and limits; `simulation/RESULTS.md` – results and
   recommendations for the power-stage redesign.
+- `simulation/power/check.py` (assertions on key results) and a CI smoke job running one
+  sweep per simulation family.
+
+### Changed
+
+- `simulation/RESULTS.md`: wording of model-vs-datasheet agreement, 5 A conclusion and
+  hot-spot claim toned down; vendor model links marked as unverified.
 
 ## [0.1.0-dev] - 2026-11-21
 
