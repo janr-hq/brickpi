@@ -31,7 +31,8 @@ Version **0.1.0-dev** – repository bootstrap. Nothing here is a finished produ
 | Pi 4 B | ✅ | ✅ (≤ ~2 A) | |
 | Pi 5 | ✅ (spidev) | ❌ | Needs 5 V / 5 A; the LM2576 + PTC stage is limited to ~2 A. See [docs/POWER.md](docs/POWER.md). Flashing over SWD needs the `rpi5.cfg` OpenOCD interface. |
 
-The SPI protocol is documented in [docs/PROTOCOL.md](docs/PROTOCOL.md).
+The SPI protocol is documented in [docs/PROTOCOL.md](docs/PROTOCOL.md). Related open-source
+projects and what we reuse: [docs/PRIOR-ART.md](docs/PRIOR-ART.md).
 
 ## Repository layout
 
