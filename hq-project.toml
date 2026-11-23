@@ -1,0 +1,64 @@
+purpose = "Otwarta płytka sterownika, która pozwala podłączyć do małego komputera Raspberry Pi silniki i czujniki z klocków LEGO Mindstorms. Dzięki niej Raspberry Pi może sterować zbudowanym z klocków robotem. Projekt jest wolnym odpowiednikiem komercyjnej płytki BrickPi3."
+
+status = "kod"
+status_note = "Projekt płytki KiCad (REV2) gotowy, pierwsza płytka wykonana i przetestowana; obecna rewizja jeszcze niewykonana. Sterownik, firmware i robot dopiero planowane."
+
+where = [
+  "hardware/ – schemat i płytka drukowana w KiCad 8",
+  "docs/ – opis protokołu SPI, zasilania, symulacji i przegląd podobnych projektów",
+  "simulation/ – symulacje układu zasilania w ngspice i wyniki",
+  "enclosure/ – obudowa w FreeCAD (płytka + Raspberry Pi 5)",
+  "driver/, firmware/, robot/ – na razie tylko plany (README)",
+  "scripts/check-repo.sh – kontrola spójności repozytorium",
+]
+
+connects = [
+  "Raspberry Pi 3/4/5 – komunikacja z płytką przez magistralę SPI",
+  "Silniki i czujniki LEGO Mindstorms NXT/EV3 – 4 porty silników, 4 porty czujników",
+  "Mikrokontroler ATSAMD21J18A na płytce – programowany przez SWD (OpenOCD)",
+  "Oryginalny sterownik DexterInd BrickPi3 (MIT) – działa na razie bez zmian",
+]
+
+how = [
+  "Przeczytaj README.md – status, zgodność z wersjami Raspberry Pi i układ repozytorium.",
+  "Projekt płytki otwórz w KiCad 8: katalog hardware/.",
+  "Zasady komunikacji z płytką opisuje docs/PROTOCOL.md, zasilanie docs/POWER.md.",
+  "Pi 5 nie jest zasilane z płytki (za mały prąd) – wymaga osobnego zasilacza 5 V / 5 A.",
+  "Symulacje zasilania opisuje docs/SIMULATION.md; uruchamia się je w ngspice.",
+  "Zasady pracy: gałąź od develop, PR do develop, Conventional Commits (CLAUDE.md).",
+]
+
+[[stack]]
+name = "KiCad 8"
+kind = "narzędzie"
+role = "Projekt schematu i płytki drukowanej"
+
+[[stack]]
+name = "ngspice"
+kind = "narzędzie"
+role = "Symulacja układu zasilania płytki"
+
+[[stack]]
+name = "FreeCAD"
+kind = "narzędzie"
+role = "Projekt obudowy"
+
+[[stack]]
+name = "SPI"
+kind = "interfejs"
+role = "Łączność Raspberry Pi z mikrokontrolerem płytki"
+
+[[stack]]
+name = "Python"
+kind = "język"
+role = "Obecny sterownik DexterInd (spidev) używany z płytką"
+
+[[stack]]
+name = "Rust"
+kind = "język"
+role = "Planowany sterownik i firmware"
+
+[[stack]]
+name = "OpenOCD"
+kind = "narzędzie"
+role = "Wgrywanie firmware przez SWD"
